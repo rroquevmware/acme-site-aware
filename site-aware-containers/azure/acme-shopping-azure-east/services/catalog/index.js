@@ -174,6 +174,76 @@ app.get("/products/:id", function(req, res, next) {
     }); // end of request
 });
 
+
+app.get("/catalog/addlatency/:latency", function(req, res, next) {
+
+  console.log('adding latency to catalog')
+
+  const productSpan = opentracing.globalTracer().startSpan('add_latency', {
+      tags :{
+        'http.method' : 'GET',
+        'http.url': `http://${req.headers.host}${req.url}`,
+        'product.latency': req.params.latency
+      }
+    });
+
+      
+  opentracing.globalTracer().inject(productSpan.context() , opentracing.FORMAT_HTTP_HEADERS , req.headers)
+
+  var headers = {
+    "uber-trace-id": req.headers['uber-trace-id'],
+    "Authorization": 'Bearer ' + req.cookies['logged_in']
+  }
+
+  var options = {
+      uri:  endpoints.catalogUrl + "/catalog/addlatency/" + req.params.latency,
+      method: 'GET',
+      json: true,
+      headers: headers
+    };
+
+    request(options, function(error, response, body) {
+      if (error) {
+        return next(error);
+      }
+
+      if (response.statusCode == 200) {
+          console.log('Added latency')
+          res.writeHead(200)
+          res.write(JSON.stringify(body))
+
+          productSpan.setTag(opentracing.Tags.HTTP_STATUS_CODE, response.statusCode)
+          productSpan.log({
+              'event': 'request_end'
+            });
+          productSpan.finish();
+
+          res.end();
+      } 
+      
+      else {
+          //console.log("Error with log in: " + req.body.username);
+          res.status(response.statusCode);
+          res.write(JSON.stringify(response.statusCode))
+
+          productSpan.setTag(opentracing.Tags.HTTP_STATUS_CODE, response.statusCode)
+          productSpan.setTag(opentracing.Tags.ERROR, true);
+          productSpan.log({
+            'event': 'error',
+            'message': response.statusMessage.toString()
+          });
+          productSpan.log({
+            'event': 'request_end'
+          })
+          productSpan.finish();
+
+          res.end();
+      }
+
+  }); // end of request
+});
+
+
 app.get("/static/images/:id", function(req, res, next){
 
 
