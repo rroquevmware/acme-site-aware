@@ -37,7 +37,7 @@ spec:
         service: shopping
     spec:
       containers:
-      - image: rroque99/shopping-azure-west:v0.2
+      - image: rroque99/shopping-azure-west:latency
         name: shopping
         env:
         - name: FRONTEND_PORT

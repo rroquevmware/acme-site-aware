@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strconv"
+	"time"
 	"net/http"
 
 	tracelog "github.com/opentracing/opentracing-go/log"
@@ -11,6 +13,8 @@ import (
 	"github.com/vmwarecloudadvocacy/catalogsvc/internal/db"
 	"github.com/vmwarecloudadvocacy/catalogsvc/pkg/logger"
 )
+
+var _global_latency int = 0
 
 // Product struct
 type Product struct {
@@ -54,6 +58,8 @@ func GetProducts(c *gin.Context) {
 	productSpan := tracer.StartSpan("db_get_products", stdopentracing.ChildOf(productSpanCtx))
 	defer productSpan.Finish()
 
+	time.Sleep(time.Duration(_global_latency) * time.Millisecond)
+
 	error := db.Collection.Find(nil).All(&products)
 
 	if error != nil {
@@ -72,6 +78,30 @@ func GetProducts(c *gin.Context) {
 
 }
 
+func SetLatency(c *gin.Context) {
+	
+
+	old_latency := _global_latency
+	latency,err := strconv.Atoi(c.Param("latency"))
+	
+	if err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "latency paramter not an integer"})
+		return
+
+	}
+
+	_global_latency = latency
+
+	json_return := "{old-latency-ms: " + strconv.Itoa(old_latency) + ", new-latency-ms: " + strconv.Itoa(_global_latency) + "}"
+
+	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": json_return})
+
+
+}
+
+
+
 // GetProduct accepts a context as input along with a specific product ID and returns details about that product
 // If a product is not found, it returns 404 NOT FOUND
 func GetProduct(c *gin.Context) {
@@ -85,6 +115,8 @@ func GetProduct(c *gin.Context) {
 	defer productSpan.Finish()
 
 	productID := c.Param("id")
+
+	time.Sleep(time.Duration(_global_latency) * time.Millisecond)
 
 	productSpan.LogFields(
 		tracelog.String("event", "string-format"),

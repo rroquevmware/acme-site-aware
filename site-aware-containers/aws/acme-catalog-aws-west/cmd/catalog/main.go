@@ -66,6 +66,7 @@ func handleRequest() {
 		nonAuthGroup.GET("/liveness", service.GetLiveness)
 		nonAuthGroup.GET("/products", service.GetProducts)
 		nonAuthGroup.GET("/products/:id", service.GetProduct)
+		nonAuthGroup.GET("/catalog/addlatency/:latency", service.SetLatency)
 	}
 
 	authGroup := router.Group("/")
